@@ -219,6 +219,23 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+-- Debug keymap
+vim.keymap.set('n', '<F5>', function()
+  require('dap').continue()
+end)
+vim.keymap.set('n', '<F10>', function()
+  require('dap').step_over()
+end)
+vim.keymap.set('n', '<F11>', function()
+  require('dap').step_into()
+end)
+vim.keymap.set('n', '<F12>', function()
+  require('dap').step_out()
+end)
+vim.keymap.set('n', '<leader>b', function()
+  require('dap').toggle_breakpoint()
+end)
+
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -248,6 +265,8 @@ rtp:prepend(lazypath)
 require('lazy').setup({
   -- NOTE: Plugins can be added with a link (or for a github repo: 'owner/repo' link).
   'NMAC427/guess-indent.nvim', -- Detect tabstop and shiftwidth automatically
+  'numToStr/Comment.nvim',
+  'github/copilot.vim',
 
   -- NOTE: Plugins can also be added by using a table,
   -- with the first argument being the link and the following
@@ -281,6 +300,16 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+    },
+  },
+
+  -- Debugging plugins
+  {
+    'mfussenegger/nvim-dap',
+    dependencies = {
+      'mfussenegger/nvim-dap-python',
+      'rcarriga/nvim-dap-ui',
+      'nvim-neotest/nvim-nio',
     },
   },
 
@@ -407,11 +436,18 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
-        -- defaults = {
-        --   mappings = {
-        --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
-        --   },
-        -- },
+        defaults = {
+          mappings = {
+            i = {
+              ['<C-j>'] = 'move_selection_next',
+              ['<C-k>'] = 'move_selection_previous',
+            },
+            n = {
+              ['j'] = 'move_selection_next',
+              ['k'] = 'move_selection_previous',
+            },
+          },
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = {
@@ -672,8 +708,18 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        -- gopls = {},
-        -- pyright = {},
+        gopls = {},
+        pyright = {},
+        pylsp = {
+          settings = {
+            pylsp = {
+              plugins = {
+                pycodestyle = { maxLineLength = 120 },
+                -- or disable it: pycodestyle = { enabled = false },
+              },
+            },
+          },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -733,6 +779,15 @@ require('lazy').setup({
           end,
         },
       }
+      vim.lsp.config('pylsp', {
+        settings = {
+          pylsp = {
+            plugins = {
+              pycodestyle = { maxLineLength = 120 },
+            },
+          },
+        },
+      })
     end,
   },
 
@@ -989,6 +1044,22 @@ require('lazy').setup({
     },
   },
 })
+
+local dap = require 'dap'
+local dapui = require 'dapui'
+dapui.setup()
+
+require('dap-python').setup 'python' -- or full venv path if needed
+
+dap.listeners.after.event_initialized['dapui'] = function()
+  dapui.open()
+end
+dap.listeners.before.event_terminated['dapui'] = function()
+  dapui.close()
+end
+dap.listeners.before.event_exited['dapui'] = function()
+  dapui.close()
+end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
